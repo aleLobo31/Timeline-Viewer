@@ -10,7 +10,7 @@ so that I can specify historical facts.
     - Start Year
     - End Year
     - Period Name
-    - Period Description (Optional)
+    - Period Description (Optional < 300 words)
     - Color (elected from a list with 16 colors)
 + Two historical periods can share start and end year but then should not be overlapped in the display (one above the other)
 + Historical periods should be displayed above historical periods

@@ -1,0 +1,57 @@
+---
+description: Project goal, repository structure, and the read-only requirements/ folder
+alwaysApply: true
+---
+
+# Timeline-Viewer overview
+
+## Goal
+
+Web app where **guides** build history timelines and share them (link or QR) with **tourists**, who explore them on their phones during guided tours.
+
+- Feature 1 (Timelines) is implemented: user stories in `requirements/F1-Timelines`, quality requirements in `requirements/QualityREQ` (Q-1 responsive, Q-2 no plaintext secrets, Q-3 interactions under 1 s, Q-4 guide UI desktop-first).
+- Features 2 (Family trees) and 3 (Maps) are only specified (`requirements/F2-FamilyTrees`, `requirements/F3-Maps`), not built.
+
+## Requirements are read-only
+
+**NEVER create, edit, rename, move, or delete anything under `requirements/`.** Only read it.
+
+- Treat it as the source of truth. If code and a requirement disagree, change the code.
+- If a requirement seems wrong or ambiguous, do not edit it. Document the assumption in `README.md` under "Assumptions" and tell the user.
+
+## Structure
+
+npm workspaces monorepo (Node 22+, TypeScript, Prettier, ESLint).
+
+```
+apps/web         React 18 + Vite + React Router + TanStack Query (custom HTML/CSS timeline renderer)
+  src/pages        route pages (Library, Login, Register, TimelineEditor, SharedTimeline)
+  src/components   shared UI (AppHeader, SharePanel, timeline/TimelineView + layout)
+  src/editor       editor draft state and ItemCard
+  src/api, auth    API client and auth context
+apps/api         Express 5 + Prisma + PostgreSQL + Zod
+  src/routes       HTTP layer (auth, timelines, materials, public, uploads)
+  src/services     business logic (auth, share, timeline, passwords)
+  prisma/          schema and migrations
+  test/            Vitest + Supertest integration tests (needs the database)
+packages/shared  Zod schemas and pure domain rules used by BOTH apps
+                 (validation, password policy, lane packing, timeframe/panning)
+e2e/             Playwright + axe tests (desktop and Pixel 5 phone viewport)
+requirements/    user stories and quality requirements (READ-ONLY)
+docker/, docker-compose.yml   PostgreSQL (also creates the timeline_test database)
+```
+
+## Conventions
+
+- Put domain rules used by both apps in `packages/shared`, not duplicated in web or api.
+- Keep route handlers thin; business logic goes in `apps/api/src/services`.
+- Desktop-first for guide UI (Q-4): the timeline editor is a 2/3 editing zone + 1/3 phone preview, only the item list scrolls.
+- Mobile-first for historical materials visualization: content text >= 16px, touch targets >= 44px.
+- UI palette is navy blues, white and black. No green/red for success or failure: use text, icons and weight. The 16-color timeline palette is content and stays.
+- Library covers are explicit and optional (`coverImage`), never derived from event images.
+- Never store or return plaintext passwords (argon2id hashes only, httpOnly session cookie).
+- New behavior needs tests in the matching layer (shared, web, api, or e2e).
+
+## Commands
+
+`npm run dev` (api :4000, web :5173), `npm test`, `npm run test:e2e`, `npm run lint`, `npm run typecheck`, `npm run db:up`, `npm run db:migrate`.

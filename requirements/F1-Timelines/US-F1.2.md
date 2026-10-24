@@ -11,7 +11,7 @@ so that I can specify historical facts.
     - Event Icon: (Crown, Swords, Skull, Scroll, White pigeon)
     - Day and Month (Optional)
     - Event Name
-    - Event Description
+    - Event Description (< 300 words)
     - Image (Optional)
 + Two historical events can´t have the same year. If so ask the user the explicit day and month
 + Two historical events in a same timeline will never share same Day, Month and Year. If so warn the user and explain the reason.
