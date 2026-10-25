@@ -7,7 +7,7 @@ import {
   ITEM_DESCRIPTION_MAX_WORDS,
   countWords,
 } from '@timeline-viewer/shared';
-import { Field } from '../components/Field';
+import { BareField, Field } from '../components/Field';
 import { FieldErrors } from '../components/FieldErrors';
 import { KIND_LABEL, type DraftItem } from './draft';
 import { ImageUploadButton } from './ImageUploadButton';
@@ -100,8 +100,7 @@ export function ItemCard({
                 ))}
               </select>
             </Field>
-            <div className="field field-compact">
-              <span className="label">Event icon</span>
+            <BareField>
               <button
                 type="button"
                 className="btn btn-icon picker-button"
@@ -115,18 +114,15 @@ export function ItemCard({
                   {item.icon ? EVENT_ICON_GLYPHS[item.icon] : '\u2205'}
                 </span>
               </button>
-            </div>
-            <div className="field field-compact">
-              <span className="label">
-                Image <span className="optional">(optional)</span>
-              </span>
+            </BareField>
+            <BareField>
               <ImageUploadButton
                 label="event image"
                 value={item.imageUrl}
                 onChange={(url) => onChange({ imageUrl: url })}
                 errors={errors('imageUrl')}
               />
-            </div>
+            </BareField>
           </>
         ) : (
           <>

@@ -6,6 +6,7 @@ const apiTarget = process.env.VITE_API_PROXY ?? 'http://localhost:4000';
 export default defineConfig({
   plugins: [react()],
   server: {
+    host: true,
     port: 5173,
     strictPort: true,
     // Same-origin API calls in dev: cookies just work and no CORS is needed.

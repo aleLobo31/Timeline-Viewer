@@ -8,6 +8,7 @@ import {
 } from '@timeline-viewer/shared';
 import { useMaterials } from '../api/materials';
 import { SharePanel } from '../components/SharePanel';
+import { ShareIcon } from '../components/icons';
 
 const FILTER_LABEL: Record<MaterialType, string> = {
   TIMELINE: 'Timelines',
@@ -20,31 +21,14 @@ export function LibraryPage() {
   const typeParam = params.get('type');
   const type = MATERIAL_TYPES.find((t) => t === typeParam);
   const { data: materials, isLoading, error } = useMaterials(type);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [sharing, setSharing] = useState(false);
+  const [sharing, setSharing] = useState<MaterialSummaryDto | null>(null);
 
   const setType = (t?: MaterialType) => setParams(t ? { type: t } : {});
-  const toggle = (id: string) =>
-    setSelected((cur) => {
-      const next = new Set(cur);
-      if (!next.delete(id)) next.add(id);
-      return next;
-    });
-
-  const selectedMaterials = (materials ?? []).filter((m) => selected.has(m.id));
 
   return (
     <main className="page page-wide">
       <div className="page-head">
         <h1>My library</h1>
-        <button
-          type="button"
-          className="btn btn-primary"
-          disabled={selectedMaterials.length === 0}
-          onClick={() => setSharing(true)}
-        >
-          Share selected{selectedMaterials.length > 0 ? ` (${selectedMaterials.length})` : ''}
-        </button>
       </div>
 
       <div className="btn-row filters" role="group" aria-label="Filter by type">
@@ -64,9 +48,7 @@ export function LibraryPage() {
         ))}
       </div>
 
-      {sharing && selectedMaterials.length > 0 && (
-        <SharePanel materials={selectedMaterials} onClose={() => setSharing(false)} />
-      )}
+      {sharing && <SharePanel material={sharing} onClose={() => setSharing(null)} />}
 
       {isLoading && <p className="spinner-text">Loading your library...</p>}
       {error && (
@@ -82,11 +64,7 @@ export function LibraryPage() {
           </li>
           {(materials ?? []).map((m) => (
             <li key={m.id}>
-              <MaterialCard
-                material={m}
-                selected={selected.has(m.id)}
-                onToggle={() => toggle(m.id)}
-              />
+              <MaterialCard material={m} onShare={() => setSharing(m)} />
             </li>
           ))}
         </ul>
@@ -143,12 +121,10 @@ function NewMaterialCard() {
 
 function MaterialCard({
   material,
-  selected,
-  onToggle,
+  onShare,
 }: {
   material: MaterialSummaryDto;
-  selected: boolean;
-  onToggle: () => void;
+  onShare: () => void;
 }) {
   // Without an explicit cover the card stays blank: it is never filled from the items.
   const body = (
@@ -160,10 +136,7 @@ function MaterialCard({
     </>
   );
   return (
-    <article
-      className={`material-card${selected ? ' is-selected' : ''}`}
-      aria-label={material.name}
-    >
+    <article className="material-card" aria-label={material.name}>
       {material.type === 'TIMELINE' ? (
         <Link to={`/timelines/${material.id}`} className="material-link">
           {body}
@@ -172,17 +145,19 @@ function MaterialCard({
         <div className="material-link">{body}</div>
       )}
       <div className="material-meta">
+        {material.type === 'TIMELINE' && (
+          <button
+            type="button"
+            className="btn btn-icon share-button"
+            aria-label={`Share ${material.name}`}
+            title="Share"
+            onClick={onShare}
+          >
+            <ShareIcon />
+          </button>
+        )}
         <span className="badge">{MATERIAL_TYPE_LABELS[material.type]}</span>
         {material.shared && <span className="badge badge-shared">Shared</span>}
-        <label className="select-box">
-          <input
-            type="checkbox"
-            checked={selected}
-            onChange={onToggle}
-            aria-label={`Select ${material.name}`}
-          />
-          <span>Select</span>
-        </label>
       </div>
     </article>
   );

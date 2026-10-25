@@ -214,6 +214,7 @@ test.describe('Q-3 interactions answer in under 1 second', () => {
     await expect(page.getByTestId('timeline-details')).toBeVisible();
 
     const apply = await (async () => {
+      await page.getByRole('button', { name: 'Timeframe menu' }).click();
       await page.getByLabel('From year').fill('1100');
       await page.getByLabel('To year').fill('1300');
       return timed(
@@ -227,7 +228,7 @@ test.describe('Q-3 interactions answer in under 1 second', () => {
     for (let i = 0; i < 3; i++) {
       const pan = await timed(
         page,
-        `document.querySelector('button[aria-label="Move to later years"]').click()`,
+        `document.querySelector('.tl-scroll').dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }))`,
       );
       expect(pan, 'pan').toBeLessThan(1000);
     }

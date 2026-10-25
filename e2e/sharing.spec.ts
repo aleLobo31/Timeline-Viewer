@@ -6,15 +6,15 @@ test.describe('Sharing (US-F1.5)', () => {
     test(`tourist sees a timeline shared through ${method}`, async ({ page, browser }) => {
       const request = page.request;
       await registerViaApi(request);
-      await createTimelineViaApi(request, 'Shared one');
+      const sharedOne = await createTimelineViaApi(request, 'Shared one');
       await createTimelineViaApi(request, 'Private one');
 
       await page.goto('/library');
-      await expect(page.getByRole('button', { name: /Share selected/ })).toBeDisabled();
-      await page.getByLabel('Select Shared one').check();
-      await page.getByRole('button', { name: /Share selected/ }).click();
-      await page.getByText(method, { exact: true }).click();
-      await page.getByRole('button', { name: 'Share', exact: true }).click();
+      await expect(page.getByRole('checkbox')).toHaveCount(0);
+      await page.getByRole('button', { name: 'Share Shared one' }).click();
+      const dialog = page.getByRole('dialog', { name: 'Share Shared one' });
+      await dialog.getByText(method, { exact: true }).click();
+      await dialog.getByRole('button', { name: 'Share', exact: true }).click();
 
       let url: string;
       if (method === 'Link') {
@@ -23,7 +23,18 @@ test.describe('Sharing (US-F1.5)', () => {
         await expect(
           page.getByRole('img', { name: /QR code that opens Shared one/ }),
         ).toBeVisible();
-        url = (await page.locator('.qr-share .hint').innerText()).trim();
+        // only the QR is shown: no direct link, and both buttons sit on one centered row
+        await expect(dialog.getByLabel('Share link')).toHaveCount(0);
+        await expect(dialog.getByText(/\/s\//)).toHaveCount(0);
+        const download = (await dialog.getByRole('link', { name: 'Download QR' }).boundingBox())!;
+        const stop = (await dialog.getByRole('button', { name: 'Stop sharing' }).boundingBox())!;
+        expect(Math.abs(download.y - stop.y)).toBeLessThan(4);
+        const qr = (await page.getByRole('img', { name: /QR code that opens/ }).boundingBox())!;
+        const box = (await dialog.boundingBox())!;
+        expect(Math.abs(qr.x + qr.width / 2 - (box.x + box.width / 2))).toBeLessThan(4);
+        // the url the QR encodes comes from the API
+        const detail = await request.get(`/api/timelines/${sharedOne.id}`);
+        url = `${new URL(page.url()).origin}${(await detail.json()).timeline.share.path}`;
       }
       expect(url).toMatch(/\/s\/[A-Za-z0-9_-]{22}$/);
 
@@ -69,8 +80,7 @@ test.describe('Sharing (US-F1.5)', () => {
     await expect(
       page.getByRole('article', { name: 'Soon private' }).getByText('Shared', { exact: true }),
     ).toBeVisible();
-    await page.getByLabel('Select Soon private').check();
-    await page.getByRole('button', { name: /Share selected/ }).click();
+    await page.getByRole('button', { name: 'Share Soon private' }).click();
     await page.getByRole('button', { name: 'Share', exact: true }).click();
     await page.getByRole('button', { name: 'Stop sharing' }).click();
     await expect(page.getByText(/Sharing stopped/)).toBeVisible();
@@ -96,12 +106,21 @@ test.describe('Tourist viewer (US-F1.6)', () => {
     // full range of the sample is 1480 - 1580
     await expect(page.getByTestId('viewer-range')).toHaveText('1480 \u2013 1580');
     await expect(page.getByRole('button', { name: /Event:/ })).toHaveCount(3);
+    // no earlier / later buttons: the year search is behind the hamburger menu, top right
+    await expect(page.getByRole('button', { name: /earlier|later/i })).toHaveCount(0);
+    await expect(page.getByLabel('From year')).toHaveCount(0);
+    const menu = page.getByRole('button', { name: 'Timeframe menu' });
+    const menuBox = (await menu.boundingBox())!;
+    const pageBox = (await page.locator('main').boundingBox())!;
+    expect(menuBox.x + menuBox.width, 'right side').toBeGreaterThan(pageBox.x + pageBox.width - 40);
+    expect(menuBox.y, 'top').toBeLessThan(120);
 
     // expand an event
     await page.getByRole('button', { name: /Event: Coronation/ }).click();
     await expect(page.getByTestId('timeline-details')).toContainText('A king is crowned');
 
     // invalid subset: warns, whole timeline displayed
+    await menu.click();
     await page.getByLabel('From year').fill('1450');
     await page.getByLabel('To year').fill('1550');
     await page.getByRole('button', { name: 'Show timeframe' }).click();
@@ -109,6 +128,7 @@ test.describe('Tourist viewer (US-F1.6)', () => {
     await expect(page.getByTestId('viewer-range')).toHaveText('1480 \u2013 1580');
 
     // valid subset
+    await menu.click();
     await page.getByLabel('From year').fill('1500');
     await page.getByLabel('To year').fill('1530');
     await page.getByRole('button', { name: 'Show timeframe' }).click();
@@ -117,18 +137,17 @@ test.describe('Tourist viewer (US-F1.6)', () => {
     await expect(page.getByRole('button', { name: /Event: Coronation/ })).toBeVisible();
 
     // navigation: both directions, blocked at the edges
-    const left = page.getByRole('button', { name: 'Move to earlier years' });
-    const right = page.getByRole('button', { name: 'Move to later years' });
-    await expect(left).toBeEnabled();
-    await expect(right).toBeEnabled();
-    await left.click();
-    await expect(page.getByTestId('viewer-range')).toHaveText('1485 \u2013 1515');
-    await left.click();
-    await expect(page.getByTestId('viewer-range')).toHaveText('1480 \u2013 1510');
-    await expect(left).toBeDisabled();
-    for (let i = 0; i < 6; i++) if (await right.isEnabled()) await right.click();
-    await expect(page.getByTestId('viewer-range')).toHaveText('1550 \u2013 1580');
-    await expect(right).toBeDisabled();
+    // (arrow keys, while the timeline has the focus)
+    const range = page.getByTestId('viewer-range');
+    await page.getByLabel(/scroll sideways/).focus();
+    await page.keyboard.press('ArrowLeft');
+    await expect(range).toHaveText('1485 \u2013 1515');
+    await page.keyboard.press('ArrowLeft');
+    await expect(range).toHaveText('1480 \u2013 1510');
+    await page.keyboard.press('ArrowLeft'); // blocked at the beginning
+    await expect(range).toHaveText('1480 \u2013 1510');
+    for (let i = 0; i < 8; i++) await page.keyboard.press('ArrowRight');
+    await expect(range).toHaveText('1550 \u2013 1580'); // blocked at the end
     await tourist.close();
   });
 });

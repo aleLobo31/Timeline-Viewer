@@ -1,5 +1,5 @@
 import { FieldErrors } from '../components/FieldErrors';
-import { CheckIcon, CloseIcon, ImageIcon } from '../components/icons';
+import { CloseIcon, ImageIcon } from '../components/icons';
 import { useImageUpload } from './useImageUpload';
 
 interface Props {
@@ -10,7 +10,7 @@ interface Props {
   errors?: string[];
 }
 
-/** Icon-only upload button: no preview, a check mark tells the image is set and a cross removes it. */
+/** Icon-only upload button: no preview. The button is filled when an image is set and a cross removes it. */
 export function ImageUploadButton({ label, value, onChange, errors = [] }: Props) {
   const image = useImageUpload((url) => onChange(url));
 
@@ -32,7 +32,7 @@ export function ImageUploadButton({ label, value, onChange, errors = [] }: Props
               e.target.value = '';
             }}
           />
-          {value ? <CheckIcon /> : <ImageIcon />}
+          <ImageIcon />
         </label>
         {value && (
           <button

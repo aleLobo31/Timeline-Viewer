@@ -1,53 +1,56 @@
 import QRCode from 'qrcode';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import type { MaterialSummaryDto, ShareMethod } from '@timeline-viewer/shared';
 import { useShare, useUnshare, type ShareResult } from '../api/materials';
+import { Modal } from './Modal';
 
 export const shareUrl = (path: string) => `${window.location.origin}${path}`;
 
 interface Props {
-  materials: Pick<MaterialSummaryDto, 'id' | 'name'>[];
+  material: Pick<MaterialSummaryDto, 'id' | 'name'>;
   onClose: () => void;
 }
 
-/** US-F1.5: choose how the selected timelines are shared (link or QR code). */
-export function SharePanel({ materials, onClose }: Props) {
+/** US-F1.5: modal where the guide chooses how one timeline is shared (link or QR code). */
+export function SharePanel({ material, onClose }: Props) {
   const share = useShare();
   const unshare = useUnshare();
   const [method, setMethod] = useState<ShareMethod>('LINK');
-  const [results, setResults] = useState<ShareResult[]>([]);
-  const [stopped, setStopped] = useState<Set<string>>(new Set());
+  const [result, setResult] = useState<ShareResult | null>(null);
+  const [stopped, setStopped] = useState(false);
 
-  const names = new Map(materials.map((m) => [m.id, m.name]));
-
-  const onShare = () => {
+  const handleShare = () => {
     share.mutate(
-      { materialIds: materials.map((m) => m.id), method },
+      { materialIds: [material.id], method },
       {
-        onSuccess: (r) => {
-          setResults(r);
-          setStopped(new Set());
+        onSuccess: (shares) => {
+          setResult(shares[0] ?? null);
+          setStopped(false);
         },
       },
     );
   };
 
+  const handleStopSharing = () => {
+    unshare.mutate(material.id, { onSuccess: () => setStopped(true) });
+  };
+
+  const stopButton = (
+    <button type="button" className="btn" disabled={unshare.isPending} onClick={handleStopSharing}>
+      Stop sharing
+    </button>
+  );
+
   return (
-    <section className="card share-panel" aria-label="Share timelines">
-      <div className="page-head">
-        <h2>Share {materials.length === 1 ? 'timeline' : `${materials.length} timelines`}</h2>
-        <button
-          type="button"
-          className="btn btn-ghost"
-          onClick={onClose}
-          aria-label="Close sharing"
-        >
-          {'\u2715'}
-        </button>
-      </div>
+    <Modal
+      title="Share timeline"
+      label={`Share ${material.name}`}
+      closeLabel="Close sharing"
+      onClose={onClose}
+    >
       <p>
-        Tourists who open the link or scan the code can view and interact with the timeline. Nothing
-        else is visible to them.
+        Tourists who open the link or scan the code can view and interact with{' '}
+        <strong>{material.name}</strong>. Nothing else is visible to them.
       </p>
 
       <fieldset className="choice-group">
@@ -77,47 +80,33 @@ export function SharePanel({ materials, onClose }: Props) {
       <button
         type="button"
         className="btn btn-primary"
-        onClick={onShare}
+        onClick={handleShare}
         disabled={share.isPending}
       >
         {share.isPending ? 'Sharing...' : 'Share'}
       </button>
 
-      {results.length > 0 && (
-        <ul className="share-results" aria-label="Shared timelines">
-          {results.map(({ materialId, share: s }) => (
-            <li key={materialId} className="share-result">
-              <h3>{names.get(materialId) ?? 'Timeline'}</h3>
-              {stopped.has(materialId) ? (
-                <p className="tl-muted">
-                  Sharing stopped. Tourists can no longer see this timeline.
-                </p>
-              ) : (
+      {result && (
+        <div className="share-result" aria-label="Shared timeline">
+          {stopped ? (
+            <p className="tl-muted">Sharing stopped. Tourists can no longer see this timeline.</p>
+          ) : (
+            <>
+              {result.share.method === 'LINK' ? (
                 <>
-                  {s.method === 'LINK' ? (
-                    <LinkShare url={shareUrl(s.path)} />
-                  ) : (
-                    <QrShare url={shareUrl(s.path)} name={names.get(materialId) ?? 'timeline'} />
-                  )}
-                  <button
-                    type="button"
-                    className="btn"
-                    disabled={unshare.isPending}
-                    onClick={() =>
-                      unshare.mutate(materialId, {
-                        onSuccess: () => setStopped((cur) => new Set(cur).add(materialId)),
-                      })
-                    }
-                  >
-                    Stop sharing
-                  </button>
+                  <LinkShare url={shareUrl(result.share.path)} />
+                  {stopButton}
                 </>
+              ) : (
+                <QrShare url={shareUrl(result.share.path)} name={material.name}>
+                  {stopButton}
+                </QrShare>
               )}
-            </li>
-          ))}
-        </ul>
+            </>
+          )}
+        </div>
       )}
-    </section>
+    </Modal>
   );
 }
 
@@ -147,7 +136,8 @@ function LinkShare({ url }: { url: string }) {
   );
 }
 
-function QrShare({ url, name }: { url: string; name: string }) {
+/** The QR code and, on one centered row, its download button and the given actions. */
+function QrShare({ url, name, children }: { url: string; name: string; children: ReactNode }) {
   const [dataUrl, setDataUrl] = useState<string | null>(null);
   useEffect(() => {
     let cancelled = false;
@@ -159,14 +149,21 @@ function QrShare({ url, name }: { url: string; name: string }) {
     };
   }, [url]);
 
-  if (!dataUrl) return <p className="spinner-text">Generating QR code...</p>;
   return (
     <div className="qr-share">
-      <img src={dataUrl} width={200} height={200} alt={`QR code that opens ${name}`} />
-      <a className="btn" href={dataUrl} download={`${name.replace(/[^\w-]+/g, '-')}-qr.png`}>
-        Download QR
-      </a>
-      <p className="hint">{url}</p>
+      {dataUrl ? (
+        <img src={dataUrl} width={200} height={200} alt={`QR code that opens ${name}`} />
+      ) : (
+        <p className="spinner-text">Generating QR code...</p>
+      )}
+      <div className="btn-row">
+        {dataUrl && (
+          <a className="btn" href={dataUrl} download={`${name.replace(/[^\w-]+/g, '-')}-qr.png`}>
+            Download QR
+          </a>
+        )}
+        {children}
+      </div>
     </div>
   );
 }

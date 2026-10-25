@@ -1,4 +1,17 @@
-import { useId, type ReactElement, cloneElement } from 'react';
+import { useId, type ReactElement, type ReactNode, cloneElement } from 'react';
+
+/**
+ * Icon-only control placed in a form row. It has no visible label (its own aria-label names it),
+ * but keeps the height of one so it lines up with the labelled inputs beside it.
+ */
+export const BareField = ({ children }: { children: ReactNode }) => (
+  <div className="field field-compact">
+    <span className="label label-spacer" aria-hidden="true">
+      {'\u00a0'}
+    </span>
+    {children}
+  </div>
+);
 
 interface FieldProps {
   label: string;

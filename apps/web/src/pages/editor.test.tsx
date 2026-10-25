@@ -180,10 +180,18 @@ describe('TimelineEditorPage - create (US-F1.1)', () => {
     renderEditor();
     await userEvent.click(screen.getByRole('button', { name: '+ Add event' }));
     const card = screen.getByRole('group', { name: 'Historical event 1' });
-    const labels = Array.from(
-      card.querySelectorAll('.item-grid-event .field > label, .item-grid-event .field > .label'),
-    ).map((el) => el.textContent?.replace(/\s*\(optional\)/, '').trim());
-    expect(labels).toEqual(['Year', 'Day', 'Month', 'Event icon', 'Image']);
+    const cells = Array.from(card.querySelectorAll('.item-grid-event > .field'));
+    expect(cells).toHaveLength(5);
+    const visibleLabels = cells.map((cell) =>
+      cell
+        .querySelector(':scope > label, :scope > .label:not([aria-hidden])')
+        ?.textContent?.replace(/\s*\(optional\)/, '')
+        .trim(),
+    );
+    // the icon and image buttons carry no visible text, only an accessible name
+    expect(visibleLabels).toEqual(['Year', 'Day', 'Month', undefined, undefined]);
+    expect(card).not.toHaveTextContent('Event icon');
+    expect(card).not.toHaveTextContent('Image');
     expect(within(card).getByRole('button', { name: 'Event icon: none' })).toBeInTheDocument();
     expect(within(card).getByLabelText('Upload event image')).toBeInTheDocument();
     expect(card.querySelector('img')).toBeNull();
@@ -339,7 +347,14 @@ describe('TimelineEditorPage - edit (US-F1.10)', () => {
     renderEditor(`/timelines/${timeline.id}`);
     await screen.findByDisplayValue('Rome');
     expect(screen.queryByRole('img')).not.toBeInTheDocument();
-    expect(screen.getByLabelText('Upload cover image')).toBeInTheDocument();
+    const upload = screen.getByLabelText('Upload cover image');
+    expect(screen.getByRole('region', { name: 'Timeline details' })).not.toHaveTextContent(
+      /Cover|optional/,
+    );
+    // an image that is set keeps the image icon (no check mark), only filled
+    const uploadButton = upload.closest('label')!;
+    expect(uploadButton).toHaveClass('is-set');
+    expect(uploadButton.querySelector('svg rect')).not.toBeNull();
     await userEvent.click(screen.getByRole('button', { name: 'Remove cover image' }));
     expect(screen.queryByRole('button', { name: 'Remove cover image' })).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Save timeline' }));

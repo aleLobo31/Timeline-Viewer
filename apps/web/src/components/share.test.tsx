@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { mockFetch, renderApp } from '../test-utils';
@@ -32,38 +32,39 @@ const base = {
 };
 
 describe('Sharing from the library (US-F1.5)', () => {
-  it('requires selecting at least one timeline', async () => {
+  it('has no bulk selection: every card has its own share icon', async () => {
     mockFetch(base);
     renderApp(<LibraryPage />);
     await screen.findByRole('article', { name: 'Rome' });
-    expect(screen.getByRole('button', { name: /Share selected/ })).toBeDisabled();
+    expect(screen.queryByRole('button', { name: /Share selected/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+    for (const name of ['Rome', 'Greece']) {
+      const card = screen.getByRole('article', { name });
+      expect(within(card).getByRole('button', { name: `Share ${name}` })).toBeInTheDocument();
+    }
   });
 
-  it('shares the selected timelines through a link', async () => {
+  it('asks for link or QR in a modal and shares only that timeline through a link', async () => {
     const calls = mockFetch({
       ...base,
       'POST /api/shares': () => ({
         body: {
-          shares: [
-            { materialId: 'a', share: { token: 'tokA', method: 'LINK', path: '/s/tokA' } },
-            { materialId: 'b', share: { token: 'tokB', method: 'LINK', path: '/s/tokB' } },
-          ],
+          shares: [{ materialId: 'b', share: { token: 'tokB', method: 'LINK', path: '/s/tokB' } }],
         },
       }),
     });
     renderApp(<LibraryPage />);
-    await userEvent.click(await screen.findByLabelText('Select Rome'));
-    await userEvent.click(screen.getByLabelText('Select Greece'));
-    await userEvent.click(screen.getByRole('button', { name: /Share selected \(2\)/ }));
-    await userEvent.click(screen.getByRole('button', { name: 'Share' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Share Greece' }));
 
-    const inputs = await screen.findAllByLabelText('Share link');
-    expect(inputs.map((i) => (i as HTMLInputElement).value)).toEqual([
-      `${window.location.origin}/s/tokA`,
-      `${window.location.origin}/s/tokB`,
-    ]);
+    const dialog = screen.getByRole('dialog', { name: 'Share Greece' });
+    expect(within(dialog).getByLabelText('Link')).toBeChecked();
+    expect(within(dialog).getByLabelText('QR code')).toBeInTheDocument();
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Share' }));
+
+    const input = await screen.findByLabelText('Share link');
+    expect((input as HTMLInputElement).value).toBe(`${window.location.origin}/s/tokB`);
     expect(calls.find((c) => c.url === '/api/shares')?.body).toEqual({
-      materialIds: ['a', 'b'],
+      materialIds: ['b'],
       method: 'LINK',
     });
   });
@@ -78,8 +79,7 @@ describe('Sharing from the library (US-F1.5)', () => {
       }),
     });
     renderApp(<LibraryPage />);
-    await userEvent.click(await screen.findByLabelText('Select Rome'));
-    await userEvent.click(screen.getByRole('button', { name: /Share selected/ }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Share Rome' }));
     await userEvent.click(screen.getByLabelText('QR code'));
     await userEvent.click(screen.getByRole('button', { name: 'Share' }));
     const qr = await screen.findByRole(
@@ -89,5 +89,18 @@ describe('Sharing from the library (US-F1.5)', () => {
     );
     expect(qr.getAttribute('src')).toMatch(/^data:image\/png;base64,/);
     expect(screen.getByRole('link', { name: 'Download QR' })).toBeInTheDocument();
+  });
+
+  it('closes the modal with Escape and with the close button', async () => {
+    mockFetch(base);
+    renderApp(<LibraryPage />);
+    await userEvent.click(await screen.findByRole('button', { name: 'Share Rome' }));
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    await userEvent.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Share Rome' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Close sharing' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 });

@@ -10,6 +10,8 @@ import {
 import { ApiError } from '../api/client';
 import { usePublicTimeline } from '../api/materials';
 import { Field } from '../components/Field';
+import { MenuIcon } from '../components/icons';
+import { Modal } from '../components/Modal';
 import { TimelineView } from '../components/timeline/TimelineView';
 import { formatRange, type Item } from '../components/timeline/layout';
 
@@ -55,6 +57,7 @@ function Viewer({
   const [from, setFrom] = useState(full ? String(full.from) : '');
   const [to, setTo] = useState(full ? String(full.to) : '');
   const [error, setError] = useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   if (!full)
     return (
@@ -73,8 +76,9 @@ function Viewer({
     setTo(String((w ?? full).to));
   };
 
-  const onApply = (e: FormEvent) => {
+  const handleApply = (e: FormEvent) => {
     e.preventDefault();
+    setMenuOpen(false);
     const result = validateTimeframe(full, Number(from), Number(to));
     if (!result.ok) {
       // Wrong timeframe: warn and go back to the default (whole) timeline.
@@ -84,6 +88,12 @@ function Viewer({
     }
     setError(null);
     show(result.window.from === full.from && result.window.to === full.to ? null : result.window);
+  };
+
+  const handleShowAll = () => {
+    setError(null);
+    setMenuOpen(false);
+    show(null);
   };
 
   const move = (direction: 'left' | 'right') => {
@@ -100,48 +110,58 @@ function Viewer({
 
   return (
     <main className="page" onKeyDown={onKeyDown}>
-      <h1>{name}</h1>
+      <div className="viewer-head">
+        <h1>{name}</h1>
+        <button
+          type="button"
+          className="btn btn-icon"
+          aria-label="Timeframe menu"
+          aria-haspopup="dialog"
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen(true)}
+        >
+          <MenuIcon />
+        </button>
+      </div>
+      {menuOpen && (
+        <Modal
+          title="Timeframe"
+          closeLabel="Close timeframe"
+          className="modal-compact"
+          onClose={() => setMenuOpen(false)}
+        >
+          <form onSubmit={handleApply} noValidate aria-label="Choose a timeframe">
+            <div className="timeframe-fields">
+              <Field label="From year">
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  value={from}
+                  autoFocus
+                  onChange={(e) => setFrom(e.target.value)}
+                />
+              </Field>
+              <Field label="To year">
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  value={to}
+                  onChange={(e) => setTo(e.target.value)}
+                />
+              </Field>
+            </div>
+            <div className="btn-row btn-row-center">
+              <button type="submit" className="btn btn-primary">
+                Show timeframe
+              </button>
+              <button type="button" className="btn" disabled={!window} onClick={handleShowAll}>
+                Show all
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
       <p>{description}</p>
-
-      <form
-        className="viewer-controls"
-        onSubmit={onApply}
-        noValidate
-        aria-label="Choose a timeframe"
-      >
-        <Field label="From year">
-          <input
-            type="number"
-            inputMode="numeric"
-            value={from}
-            onChange={(e) => setFrom(e.target.value)}
-          />
-        </Field>
-        <Field label="To year">
-          <input
-            type="number"
-            inputMode="numeric"
-            value={to}
-            onChange={(e) => setTo(e.target.value)}
-          />
-        </Field>
-        <div className="btn-row" style={{ marginBottom: '0.9rem' }}>
-          <button type="submit" className="btn btn-primary">
-            Show timeframe
-          </button>
-          <button
-            type="button"
-            className="btn"
-            disabled={!window}
-            onClick={() => {
-              setError(null);
-              show(null);
-            }}
-          >
-            Show all
-          </button>
-        </div>
-      </form>
 
       {error && (
         <div className="alert alert-error" role="alert">
@@ -149,35 +169,9 @@ function Viewer({
         </div>
       )}
 
-      <div className="viewer-nav">
-        <button
-          type="button"
-          className="btn"
-          disabled={!can.left}
-          onClick={() => move('left')}
-          aria-label="Move to earlier years"
-        >
-          &larr; Earlier
-        </button>
-        <span className="viewer-range" aria-live="polite" data-testid="viewer-range">
-          {formatRange(current.from, current.to)}
-        </span>
-        <button
-          type="button"
-          className="btn"
-          disabled={!can.right}
-          onClick={() => move('right')}
-          aria-label="Move to later years"
-        >
-          Later &rarr;
-        </button>
-      </div>
-      {!window && (
-        <p className="tl-muted">
-          The whole timeline is shown ({formatRange(full.from, full.to)}). Choose a timeframe to
-          zoom in and then move along it.
-        </p>
-      )}
+      <span className="sr-only" aria-live="polite" data-testid="viewer-range">
+        {formatRange(current.from, current.to)}
+      </span>
 
       <TimelineView items={items} window={window} label={name} />
     </main>

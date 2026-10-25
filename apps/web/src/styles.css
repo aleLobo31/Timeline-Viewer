@@ -193,10 +193,6 @@ select[aria-invalid='true'] {
   font-size: 0.95rem;
   font-weight: 700;
 }
-.field-error::before {
-  content: '! ';
-}
-
 .alert {
   border-radius: 8px;
   padding: 0.7rem 0.9rem;
@@ -214,10 +210,6 @@ select[aria-invalid='true'] {
   background: var(--navy-50);
   border-color: var(--navy-300);
   border-left: 6px solid var(--primary);
-}
-.alert-ok::before {
-  content: '\2713  ';
-  font-weight: 700;
 }
 .alert ul {
   margin: 0.25rem 0 0;
@@ -367,6 +359,7 @@ select[aria-invalid='true'] {
 }
 .tl-dot {
   position: absolute;
+  z-index: 2;
   width: 14px;
   height: 14px;
   margin: -7px 0 0 -7px;
@@ -377,6 +370,7 @@ select[aria-invalid='true'] {
 }
 .tl-stem {
   position: absolute;
+  z-index: 0;
   width: 2px;
   margin-left: -1px;
   background: var(--primary);
@@ -429,6 +423,8 @@ select[aria-invalid='true'] {
 }
 .tl-event {
   position: absolute;
+  /* above every stem: the line of a lower event never crosses another label */
+  z-index: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -537,9 +533,6 @@ select[aria-invalid='true'] {
   font: inherit;
   color: inherit;
 }
-.material-card.is-selected {
-  outline: 3px solid var(--primary);
-}
 .material-link {
   display: flex;
   flex-direction: column;
@@ -575,17 +568,10 @@ select[aria-invalid='true'] {
   gap: 0.35rem;
   padding: 0.25rem 0.9rem 0.6rem;
 }
-.select-box {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  min-height: var(--tap);
+/* the share icon sits in the bottom right corner of the card */
+.material-meta .share-button {
+  order: 1;
   margin-left: auto;
-  cursor: pointer;
-}
-.select-box input {
-  width: 22px;
-  height: 22px;
 }
 .badge {
   display: inline-block;
@@ -601,13 +587,14 @@ select[aria-invalid='true'] {
   color: #fff;
 }
 .badge-event {
-  background: var(--navy-100);
-  color: var(--primary);
-}
-.badge-process {
   background: #fff;
   color: var(--primary);
   border: 1px solid var(--primary);
+}
+.badge-process {
+  background: var(--navy-100);
+  color: var(--primary);
+  border: 1px solid transparent;
 }
 .badge-period {
   background: var(--primary);
@@ -737,6 +724,9 @@ select[aria-invalid='true'] {
   align-items: flex-start;
   white-space: nowrap;
 }
+.label-spacer {
+  visibility: hidden;
+}
 .image-upload {
   display: flex;
   flex-direction: column;
@@ -830,9 +820,6 @@ select[aria-invalid='true'] {
 .summary-issue {
   font-weight: 700;
   white-space: nowrap;
-}
-.summary-issue::before {
-  content: '! ';
 }
 .summary-panel {
   padding: 0.25rem 0.75rem 0.75rem;
@@ -1074,8 +1061,42 @@ select[aria-invalid='true'] {
 }
 
 /* ------------------------------------------------------------------ sharing */
-.share-panel {
-  margin-bottom: 1rem;
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgb(5 10 25 / 45%);
+  /* the page behind the dialog is blurred */
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+.modal {
+  width: min(32rem, 100%);
+  max-height: 100%;
+  overflow-y: auto;
+  margin: 0;
+}
+/* the question, its options and the Share button are centered */
+.modal-compact {
+  width: min(22rem, 100%);
+}
+.modal .choice-group {
+  text-align: center;
+}
+.modal .choice-group legend {
+  margin-inline: auto;
+  margin-bottom: 0.4rem;
+}
+.modal .choice-group .btn-row {
+  justify-content: center;
+}
+.modal > .btn-primary {
+  display: flex;
+  margin: 0 auto;
 }
 .radio-pill {
   display: inline-flex;
@@ -1092,15 +1113,8 @@ select[aria-invalid='true'] {
   border-color: var(--primary);
   background: #eff6ff;
 }
-.share-results {
-  list-style: none;
-  padding: 0;
-  margin: 1rem 0 0;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
 .share-result {
+  margin-top: 1rem;
   padding-top: 0.75rem;
   border-top: 1px solid var(--border);
 }
@@ -1116,35 +1130,33 @@ select[aria-invalid='true'] {
 .qr-share {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 0.5rem;
+  align-items: center;
+  gap: 0.75rem;
   margin-bottom: 0.5rem;
 }
-.qr-share .hint {
-  overflow-wrap: anywhere;
-  margin: 0;
+.qr-share .btn-row {
+  justify-content: center;
 }
 
 /* ------------------------------------------------------------------ tourist viewer */
-.viewer-controls {
+.viewer-head {
+  position: relative;
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  align-items: flex-end;
-  margin: 0.75rem 0;
-}
-.viewer-controls .field {
-  margin: 0;
-  width: 8.5rem;
-}
-.viewer-nav {
-  display: flex;
-  gap: 0.5rem;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.5rem;
+  justify-content: space-between;
+  gap: 0.75rem;
 }
-.viewer-range {
-  font-weight: 700;
-  text-align: center;
+.viewer-head h1 {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+/* From year and To year side by side, with narrow boxes */
+.timeframe-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 0.75rem;
+}
+.btn-row-center {
+  justify-content: center;
 }

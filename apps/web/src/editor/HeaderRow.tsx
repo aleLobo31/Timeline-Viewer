@@ -1,6 +1,6 @@
 import { useId, useState } from 'react';
 import { TIMELINE_DESCRIPTION_MAX_CHARS } from '@timeline-viewer/shared';
-import { Field } from '../components/Field';
+import { BareField, Field } from '../components/Field';
 import { ChevronIcon } from '../components/icons';
 import type { Draft } from './draft';
 import { ImageUploadButton } from './ImageUploadButton';
@@ -55,17 +55,14 @@ export function HeaderRow({ draft, errors, onChange }: Props) {
               onChange={(e) => onChange({ description: e.target.value })}
             />
           </Field>
-          <div className="field field-compact">
-            <span className="label">
-              Cover <span className="optional">(optional)</span>
-            </span>
+          <BareField>
             <ImageUploadButton
               label="cover image"
               value={draft.coverImage}
               onChange={(url) => onChange({ coverImage: url })}
               errors={errors('coverImage')}
             />
-          </div>
+          </BareField>
         </div>
       )}
     </section>

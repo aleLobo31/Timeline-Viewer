@@ -39,16 +39,16 @@ Open http://localhost:5173. In development the web server proxies `/api` and `/u
 
 ## How the user stories map to the code
 
-| Story                          | Where                                                                                                                                                                                                              |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| F1.1 create timeline           | `TimelineEditorPage` (collapsible `HeaderRow`: name, <= 100 character description, optional cover; breadcrumbs `Library / Timelines / name`), `PhonePreview`, `validateTimeline` (shared), `POST /api/timelines`   |
-| F1.2 events                    | `ItemSummaryRow` + `ItemCard` (row Year, Day, Month, icon button, image button; <= 300 words), `checkEventDates` (year/day/month rules), `TimelineView` (point = year + optional icon + name)                      |
-| F1.3 / F1.4 processes, periods | `COLOR_PALETTE` (16 colors, picker button beside End year), `packLanes` (stacking), `layoutTimeline` (periods above processes above the axis); rounded rectangles, processes striped, name only (details on press) |
-| F1.5 share                     | `SharePanel` (link or QR), `POST /api/shares`, unguessable tokens, `GET /api/public/s/:token`                                                                                                                      |
-| F1.6 tourist viewer            | `SharedTimelinePage`, `validateTimeframe`, `panWindow`, `canPan`, `cutItems`                                                                                                                                       |
-| F1.7 / F1.8 profile, login     | `RegisterPage`, `LoginPage`, `auth.service` (argon2id), session cookie                                                                                                                                             |
-| F1.9 library                   | `LibraryPage` (+ box, type filter, selection for sharing), `GET /api/materials`                                                                                                                                    |
-| F1.10 edit and delete          | `TimelineEditorPage` (`PUT` replaces the whole document atomically, owner-only, `DELETE`)                                                                                                                          |
+| Story                          | Where                                                                                                                                                                                                                            |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| F1.1 create timeline           | `TimelineEditorPage` (collapsible `HeaderRow`: name, <= 100 character description, optional cover; breadcrumbs `Library / Timelines / name`), `PhonePreview`, `validateTimeline` (shared), `POST /api/timelines`                 |
+| F1.2 events                    | `ItemSummaryRow` + `ItemCard` (row Year, Day, Month, icon button, image button, the last two without visible text; <= 300 words), `checkEventDates` (year/day/month rules), `TimelineView` (point = year + optional icon + name) |
+| F1.3 / F1.4 processes, periods | `COLOR_PALETTE` (16 colors, picker button beside End year), `packLanes` (stacking), `layoutTimeline` (periods above processes above the axis); rounded rectangles, processes striped, name only (details on press)               |
+| F1.5 share                     | `SharePanel` (modal opened from the share icon of each library card: link or QR), `POST /api/shares`, unguessable tokens, `GET /api/public/s/:token`                                                                             |
+| F1.6 tourist viewer            | `SharedTimelinePage`, `validateTimeframe`, `panWindow`, `canPan`, `cutItems`                                                                                                                                                     |
+| F1.7 / F1.8 profile, login     | `RegisterPage`, `LoginPage`, `auth.service` (argon2id), session cookie                                                                                                                                                           |
+| F1.9 library                   | `LibraryPage` (+ box, type filter, share icon per card), `GET /api/materials`                                                                                                                                                    |
+| F1.10 edit and delete          | `TimelineEditorPage` (`PUT` replaces the whole document atomically, owner-only, `DELETE`)                                                                                                                                        |
 
 Quality requirements:
 
@@ -65,4 +65,7 @@ Quality requirements:
 - The UI palette is navy blues, white and black. Success and failure are shown with text, icons and weight, not green or red. The 16 timeline colors (content chosen by the guide) are unchanged.
 - The library cover is the optional image chosen by the guide in the editor. It is never taken from an event; without it the card is blank.
 - Event icons are optional; descriptions are limited to 100 characters (timeline, US-F1.1 says "< 100 words") and 300 words (items). `requirements/F1-Timelines/US-F1.2` still lists the icon as mandatory; the code follows the newer decision.
+- Sharing is done one timeline at a time: US-F1.5 says "select at least one timeline", but the library now has a share icon on each card (and no selection boxes) that opens a modal to choose link or QR. The API still accepts several ids.
+- Tourist viewer: the year search (from / to, show timeframe, show all) is behind a hamburger button in the top right corner, and there are no on-screen earlier / later buttons or visible range. US-F1.6 still asks for left / right navigation, which is kept with the arrow keys (blocked at both edges); on a phone there is no control to move a cut timeline yet. The current range is still announced to screen readers.
+- When event labels overlap they are placed at different heights; the stem of a lower event goes behind the labels above it instead of crossing their text.
 - Images are stored on local disk behind a `StorageProvider` interface so they can move to S3-compatible storage later.

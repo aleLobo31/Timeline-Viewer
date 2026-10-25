@@ -39,9 +39,12 @@ export const ImageIcon = () => (
   </Svg>
 );
 
-export const CheckIcon = () => (
+export const ShareIcon = () => (
   <Svg>
-    <path d="M5 12l5 5 9-10" />
+    <circle cx="18" cy="5" r="3" />
+    <circle cx="6" cy="12" r="3" />
+    <circle cx="18" cy="19" r="3" />
+    <path d="M8.6 10.5l6.8-4M8.6 13.5l6.8 4" />
   </Svg>
 );
 
@@ -54,5 +57,11 @@ export const CloseIcon = () => (
 export const ChevronIcon = ({ open }: { open: boolean }) => (
   <Svg rotate={open ? 180 : 0}>
     <path d="M6 9l6 6 6-6" />
+  </Svg>
+);
+
+export const MenuIcon = () => (
+  <Svg>
+    <path d="M4 6h16M4 12h16M4 18h16" />
   </Svg>
 );
