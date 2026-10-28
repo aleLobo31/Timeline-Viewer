@@ -5,6 +5,7 @@ coverage/
 .env
 .env.*
 !.env.example
+certs/
 apps/api/uploads/
 *.log
 .DS_Store
@@ -16,3 +17,4 @@ uploads-e2e/
 apps/api/uploads-e2e/
 .cursor/*
 .github/*
+docker/*

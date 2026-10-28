@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { createTimelineViaApi, registerViaApi, shareViaApi } from './helpers';
+import { createTimelineViaApi, extraContextOptions, registerViaApi, shareViaApi } from './helpers';
 
 test.describe('Sharing (US-F1.5)', () => {
   for (const method of ['Link', 'QR code'] as const) {
@@ -39,7 +39,7 @@ test.describe('Sharing (US-F1.5)', () => {
       expect(url).toMatch(/\/s\/[A-Za-z0-9_-]{22}$/);
 
       // A tourist: a brand new browser context, no session at all
-      const tourist = await browser.newContext({ baseURL: 'http://localhost:5173' });
+      const tourist = await browser.newContext(extraContextOptions);
       const tp = await tourist.newPage();
       await tp.goto(url);
       await expect(tp.getByRole('heading', { name: 'Shared one' })).toBeVisible();
@@ -55,7 +55,7 @@ test.describe('Sharing (US-F1.5)', () => {
           async (r) =>
             (await r.json()).materials.find((m: { name: string }) => m.name === 'Private one').id,
         );
-      const t2 = await browser.newContext({ baseURL: 'http://localhost:5173' });
+      const t2 = await browser.newContext(extraContextOptions);
       const p2 = await t2.newPage();
       await p2.goto(`/s/${privateId}`);
       await expect(p2.getByRole('heading', { name: 'Timeline not available' })).toBeVisible();
@@ -71,7 +71,7 @@ test.describe('Sharing (US-F1.5)', () => {
     const tl = await createTimelineViaApi(request, 'Soon private');
     const share = await shareViaApi(request, tl.id);
 
-    const tourist = await browser.newContext({ baseURL: 'http://localhost:5173' });
+    const tourist = await browser.newContext(extraContextOptions);
     const tp = await tourist.newPage();
     await tp.goto(share.path);
     await expect(tp.getByRole('heading', { name: 'Soon private' })).toBeVisible();
@@ -100,7 +100,7 @@ test.describe('Tourist viewer (US-F1.6)', () => {
     const tl = await createTimelineViaApi(request, 'Viewer');
     const share = await shareViaApi(request, tl.id);
 
-    const tourist = await browser.newContext({ baseURL: 'http://localhost:5173' });
+    const tourist = await browser.newContext(extraContextOptions);
     const page = await tourist.newPage();
     await page.goto(share.path);
     // full range of the sample is 1480 - 1580

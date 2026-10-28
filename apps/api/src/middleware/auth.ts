@@ -16,7 +16,8 @@ export function sessionCookieOptions(config: Config): CookieOptions {
   return {
     httpOnly: true,
     sameSite: 'lax',
-    secure: config.isProd,
+    // Always Secure; only the in-process tests (Supertest, plain HTTP) can't keep such a cookie.
+    secure: !config.isTest,
     path: '/',
     maxAge: SESSION_DAYS * 24 * 60 * 60 * 1000,
   };

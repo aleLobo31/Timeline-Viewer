@@ -25,7 +25,8 @@ describe('POST /api/auth/register (US-F1.7)', () => {
     const stored = await db.user.findUniqueOrThrow({ where: { email: valid.email } });
     expect(stored.passwordHash).not.toBe(STRONG_PASSWORD);
     expect(stored.passwordHash).not.toContain(STRONG_PASSWORD);
-    expect(stored.passwordHash.startsWith('$argon2id$')).toBe(true);
+    // RFC 9106 second recommended option: m = 64 MiB, t = 3, p = 4.
+    expect(stored.passwordHash.startsWith('$argon2id$v=19$m=65536,t=3,p=4$')).toBe(true);
   });
 
   it.each([

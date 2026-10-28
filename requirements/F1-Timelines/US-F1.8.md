@@ -15,3 +15,5 @@ so that I can access to my explanation material.
 ## Confirmation
 |Action|Expected Result|
 |-|-|
+|Log in filling required fields. Retrieve user profile and display logged page|✅|
+|Log in with wrong email or pasword. Cannot log in. Warn user and explain why|✅|

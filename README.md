@@ -15,17 +15,39 @@ Feature 1 (Timelines) implements the user stories in `requirements/F1-Timelines`
 
 ## Getting started
 
-Requirements: Node 22+ and Docker.
+Requirements: Node 22+, Docker and [mkcert](https://github.com/FiloSottile/mkcert) (local HTTPS certificates).
 
 ```bash
 npm install
+npm run certs                      # local HTTPS certificate in ./certs (not committed)
 cp .env.example apps/api/.env      # adjust secrets if you like
 npm run db:up                      # PostgreSQL (also creates the timeline_test database)
-npm run db:migrate                 # apply Prisma migrations
-npm run dev                        # api on :4000, web on :5173
+npm run db:migrate                 # apply the Prisma migration
+npm run dev                        # api on https://localhost:4000, web on https://localhost:5173
 ```
 
-Open http://localhost:5173. In development the web server proxies `/api` and `/uploads` to the API, so cookies work without CORS.
+Open https://localhost:5173. In development the web server proxies `/api` and `/uploads` to the API, so cookies work without CORS.
+
+### HTTPS only
+
+Both the API (`https.createServer`) and the Vite dev server serve HTTPS only; nothing listens on plain HTTP, so `http://` URLs simply fail to connect.
+
+- `npm run certs` runs `mkcert -install` and writes `certs/localhost.pem` and `certs/localhost-key.pem`. To open the app from a phone on the LAN, add the computer's IP to the `mkcert` command in the `certs` script and regenerate.
+- The API reads `TLS_KEY_FILE` and `TLS_CERT_FILE` (see `.env.example`) and refuses to start without them (except `NODE_ENV=test`, where Supertest runs in-process). In production use a certificate from a real CA.
+- `WEB_ORIGIN` must be an `https://` origin; the API refuses to start otherwise.
+- The session cookie is `HttpOnly`, `SameSite=Lax` and `Secure`. In production the API also sends HSTS (1 year, `includeSubDomains`); it is not sent in development so it does not force HTTPS on other `localhost` projects.
+- The API does not trust `X-Forwarded-*` headers (no `trust proxy`) and answers 403 to any request that did not arrive over TLS.
+
+### Database
+
+There is a **single** migration, `apps/api/prisma/migrations/20261023124027_init`, that creates the whole database. Schema changes are made by editing that script (and `schema.prisma`), not by adding alterations. After such a change, or when pulling this change onto an existing database, recreate it:
+
+```bash
+npm run db:down -- -v && npm run db:up   # fresh PostgreSQL volume (dev and timeline_test)
+npm run db:migrate
+```
+
+(or `npx prisma migrate reset` inside `apps/api` for the dev database only).
 
 ## Scripts
 
@@ -53,7 +75,7 @@ Open http://localhost:5173. In development the web server proxies `/api` and `/u
 Quality requirements:
 
 - **Q-1 responsive**: mobile-first CSS, text >= 16px for content, 44px touch targets. Playwright runs every flow on a Pixel 5 viewport and checks overflow, tap target size, font size and axe accessibility.
-- **Q-2 no plaintext secrets**: passwords are stored only as argon2id hashes; the API never returns them; the session cookie is httpOnly. Covered by `apps/api/test/auth.test.ts` and `e2e/quality.spec.ts`.
+- **Q-2 no plaintext secrets**: passwords are stored only as argon2id hashes with the second recommended option of RFC 9106 (m = 65536 KiB, t = 3, p = 4, set in `apps/api/src/services/passwords.ts`); the API never returns them; the session cookie is httpOnly and Secure, and the whole app is served over HTTPS only. Covered by `apps/api/test/auth.test.ts`, `passwords.test.ts`, `https.test.ts` and `e2e/quality.spec.ts`.
 - **Q-4 guide editor desktop-first**: the editor is laid out for desktop screens: a 2/3 editing zone (fixed header row, add buttons, scrolling list of summarised items sorted from most recent to oldest, inline form) and a 1/3 phone simulation with four move buttons. Below 1024px it only stacks. Phones are checked for the tourist viewer and the library, not for the editor. Library cards are large (>= 260px) and square.
 - **Q-3 interactions under 1 s**: layout, validation and timeframe filtering are computed in the browser, images are resized to WebP on upload, the library endpoint is lean. `e2e/quality.spec.ts` measures select, timeframe and pan on a 300 item timeline.
 

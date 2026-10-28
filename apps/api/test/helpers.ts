@@ -22,7 +22,7 @@ export function createTestContext() {
     NODE_ENV: 'test',
     DATABASE_URL: databaseUrl,
     JWT_SECRET: 'test-secret-test-secret-test-secret-123',
-    WEB_ORIGIN: 'http://localhost:5173',
+    WEB_ORIGIN: 'https://localhost:5173',
     UPLOAD_DIR: uploadDir,
   });
   const db = createPrisma(databaseUrl);

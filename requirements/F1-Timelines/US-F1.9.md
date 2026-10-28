@@ -15,3 +15,6 @@ so that I can inspect it.
 ## Confirmation
 |Action|Expected Result|
 |-|-|
+|Display saved explanation material|✅|
+|Filter explanation material by each type (e.g By Timeline). Only explanation materials that match type are showm (e.g Only Timelines)|✅|
+|Create a new material. Change view to that material creation|✅|

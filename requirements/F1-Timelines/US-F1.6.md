@@ -17,7 +17,7 @@ so that I do not get lost during guide´s explanations.
 ## Confirmation
 |Action|Expected Result|
 |-|-|
-|Test to specify a valid subset timeframe (e.g In a Timeline from 1500 to 1600, specify 1520 to 1550). Timeline should be "cut" and only displays specified timeframe (New Timeline from 1520 to 1550)||
-|Test to specify an invalid subset timeframe (e.g In a Timeline from 1500 to 1600, specify 1450 to 1550). Warns the user and displays the default timeline||
-|Test to navigate in both directions of the timeline when it´s possible||
-|Test to navigate in edge directions of the timeline, it should not be possible||
+|Test to specify a valid subset timeframe (e.g In a Timeline from 1500 to 1600, specify 1520 to 1550). Timeline should be "cut" and only displays specified timeframe (New Timeline from 1520 to 1550)|✅|
+|Test to specify an invalid subset timeframe (e.g In a Timeline from 1500 to 1600, specify 1450 to 1550). Warns the user and displays the default timeline|✅|
+|Test to navigate in both directions of the timeline when it´s possible|✅|
+|Test to navigate in edge directions of the timeline, it should not be possible|✅|

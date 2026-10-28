@@ -2,6 +2,12 @@ import { expect, type APIRequestContext, type Locator, type Page } from '@playwr
 
 export const PASSWORD = 'Str0ng!Passw0rd';
 
+/** Options for extra browser contexts (the app is HTTPS only, with a local self-signed cert). */
+export const extraContextOptions = {
+  baseURL: 'https://localhost:5173',
+  ignoreHTTPSErrors: true,
+};
+
 export const uniqueEmail = () =>
   `guide-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@example.com`;
 

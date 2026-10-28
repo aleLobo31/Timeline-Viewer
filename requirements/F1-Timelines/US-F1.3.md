@@ -16,3 +16,8 @@ so that I can specify historical facts.
 + Historical processes should be displayed above the timeline and below Historical Period
 
 ## Confirmation
+|Action|Expected Result|
+|-|-|
+|Add one historical process with all mandatory fields to a timeline with one event and one historical period. Saved it. Should be displayed above the event and below the period|✅|
+|Add two historical processes that share start and end year (e.g 1550 - 1600) with all mandatory fields. Saved them. Both should be displayed without overlapping|✅|
+|Add one historical process without any of the required fields (e.g Process Name). Reject it. Warn the user and explain why|✅|

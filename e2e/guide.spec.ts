@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import {
   createTimelineViaApi,
+  extraContextOptions,
   login,
   PASSWORD,
   pickColor,
@@ -326,7 +327,7 @@ test.describe('Creating and editing timelines (US-F1.1 to US-F1.4, US-F1.9, US-F
     await page.getByRole('button', { name: 'Timelines' }).click();
     await expect(page.getByRole('article', { name: 'Mine' })).toBeVisible();
 
-    const other = await browser.newContext({ baseURL: 'http://localhost:5173' });
+    const other = await browser.newContext(extraContextOptions);
     const otherPage = await other.newPage();
     await registerViaApi(other.request);
     await otherPage.goto(`/timelines/${tl.id}`);

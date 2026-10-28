@@ -87,11 +87,11 @@ ALTER TABLE "TimelineItem" ADD CONSTRAINT "TimelineItem_materialId_fkey" FOREIGN
 ALTER TABLE "ShareLink" ADD CONSTRAINT "ShareLink_materialId_fkey" FOREIGN KEY ("materialId") REFERENCES "Material"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- Data integrity checks that Prisma can't express (Q: consistent timelines).
+-- An event may have no icon: only processes and periods are forbidden to have one.
 ALTER TABLE "TimelineItem" ADD CONSTRAINT "TimelineItem_kind_fields_chk" CHECK (
   (
     "kind" = 'EVENT'
     AND "endYear" IS NULL
-    AND "icon" IS NOT NULL
     AND "color" IS NULL
     AND (("day" IS NULL) = ("month" IS NULL))
   ) OR (

@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import https from 'node:https';
 import { createApp } from './app';
 import { loadConfig } from './config';
 import { createPrisma } from './db';
@@ -6,9 +8,18 @@ const config = loadConfig();
 const db = createPrisma(config.DATABASE_URL);
 const app = createApp(config, db);
 
-const server = app.listen(config.PORT, () => {
-  console.log(`API listening on http://localhost:${config.PORT}`);
-});
+// HTTPS only: there is deliberately no plain HTTP listener.
+const server = https
+  .createServer(
+    {
+      key: readFileSync(config.TLS_KEY_FILE!),
+      cert: readFileSync(config.TLS_CERT_FILE!),
+    },
+    app,
+  )
+  .listen(config.PORT, () => {
+    console.log(`API listening on https://localhost:${config.PORT}`);
+  });
 
 const shutdown = () => {
   server.close(() => {

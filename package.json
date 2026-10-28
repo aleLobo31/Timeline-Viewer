@@ -12,6 +12,7 @@
   },
   "scripts": {
     "dev": "concurrently -n api,web -c blue,green \"npm run dev -w @timeline-viewer/api\" \"npm run dev -w @timeline-viewer/web\"",
+    "certs": "mkcert -install && mkcert -key-file certs/localhost-key.pem -cert-file certs/localhost.pem localhost 127.0.0.1 ::1",
     "db:up": "docker compose up -d db",
     "db:down": "docker compose down",
     "db:migrate": "npm run db:migrate -w @timeline-viewer/api",
