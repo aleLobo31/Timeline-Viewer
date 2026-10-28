@@ -13,5 +13,5 @@ so that they can view and interact with it.
 ## Confirmation
 |Action|Expected Result|
 |-|-|
-|Share 1 timeline through each possible method and test if tourist and view the shared timeline||
-|Not shared timelines should not be visible for tourists|
+|Share 1 timeline through each possible method and test if tourist and view the shared timeline|✅|
+|Not shared timelines should not be visible for tourists|✅|

@@ -1,0 +1,88 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum MaterialType {
+  TIMELINE
+  FAMILY_TREE
+  MAP
+}
+
+enum ItemKind {
+  EVENT
+  PROCESS
+  PERIOD
+}
+
+enum ShareMethod {
+  LINK
+  QR
+}
+
+model User {
+  id           String     @id @default(uuid()) @db.Uuid
+  /// Always stored lower-cased; unique.
+  email        String     @unique
+  name         String
+  /// argon2id hash. Plaintext passwords are never stored (Q-2).
+  passwordHash String
+  createdAt    DateTime   @default(now())
+  materials    Material[]
+}
+
+/// Generic library entry (F1.9). F2/F3 attach their own detail tables later.
+model Material {
+  id          String         @id @default(uuid()) @db.Uuid
+  ownerId     String         @db.Uuid
+  owner       User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  type        MaterialType
+  name        String
+  description String
+  coverImage  String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  items       TimelineItem[]
+  share       ShareLink?
+
+  @@index([ownerId, type])
+}
+
+model TimelineItem {
+  id          String       @id @default(uuid()) @db.Uuid
+  materialId  String       @db.Uuid
+  material    Material     @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  kind        ItemKind
+  /// Position in the editor list (stable ordering)
+  position    Int
+  name        String
+  description String?
+  /// Year of an event, or start year of a process / period
+  startYear   Int
+  /// Only for processes / periods
+  endYear     Int?
+  /// Events only, both or none
+  day         Int?
+  month       Int?
+  /// Events only: CROWN | SWORDS | SKULL | SCROLL | DOVE
+  icon        String?
+  /// Processes / periods only: palette key
+  color       String?
+  imageUrl    String?
+
+  @@index([materialId, position])
+}
+
+model ShareLink {
+  id         String      @id @default(uuid()) @db.Uuid
+  materialId String      @unique @db.Uuid
+  material   Material    @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  /// 128-bit random, URL safe
+  token      String      @unique
+  method     ShareMethod
+  createdAt  DateTime    @default(now())
+}

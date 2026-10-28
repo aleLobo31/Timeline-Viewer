@@ -22,3 +22,6 @@ so that I can access to my explanation material
 ## Confirmation
 |Action|Expected Result|
 |-|-|
+|Create an available profile with all mandatory fields. Profile is saved and changed to logged state|✅|
+|Create an available profile with invalid password (e.g 7 characters). Reject it. Warn user and explain why|✅|
+|Create a profile with an email already stored. Reject it. Warn user and explain why.|✅|

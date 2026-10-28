@@ -14,6 +14,6 @@ so that I can modify it without needed to create a new one.
 ## Confirmation
 |Action|Expected Result|
 |-|-|
-|Add a historical event to an existing timeline. Changes should be visible after saving||
-|Delete a historical event of an existing timeline. Changes should be visible after saving||
-|Delete whole timeline. Timeline should be removed from the library||
+|Add a historical event to an existing timeline. Changes should be visible after saving|✅|
+|Delete a historical event of an existing timeline. Changes should be visible after saving|✅|
+|Delete whole timeline. Timeline should be removed from the library|✅|
