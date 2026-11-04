@@ -36,7 +36,7 @@ Both the API (`https.createServer`) and the Vite dev server serve HTTPS only; no
 - The API reads `TLS_KEY_FILE` and `TLS_CERT_FILE` (see `.env.example`) and refuses to start without them (except `NODE_ENV=test`, where Supertest runs in-process). In production use a certificate from a real CA.
 - `WEB_ORIGIN` must be an `https://` origin; the API refuses to start otherwise.
 - The session cookie is `HttpOnly`, `SameSite=Lax` and `Secure`. In production the API also sends HSTS (1 year, `includeSubDomains`); it is not sent in development so it does not force HTTPS on other `localhost` projects.
-- The API does not trust `X-Forwarded-*` headers (no `trust proxy`) and answers 403 to any request that did not arrive over TLS.
+- By default the API does not trust `X-Forwarded-*` headers and answers 403 to any request that did not arrive over TLS. Only when `TRUST_PROXY` is set (production behind a reverse proxy, see below) are those headers believed, and only from the listed proxy address.
 
 ### Database
 
@@ -49,6 +49,38 @@ npm run db:migrate
 
 (or `npx prisma migrate reset` inside `apps/api` for the dev database only).
 
+## Deployment (AWS EC2, single instance)
+
+Architecture: **Caddy** (public, ports 80/443, real Let's Encrypt certificate) serves `apps/web/dist` and proxies `/api` and `/uploads` to the **API**, which listens on `127.0.0.1:4000` and still speaks HTTPS only (Caddy re-encrypts to it with an internal self-signed certificate). The app needs one domain for both because the web client uses relative URLs and the session cookie is `Secure`.
+
+Install on the instance (Ubuntu 24.04): Node.js 22 LTS, git, Caddy, and PostgreSQL 16 (or use RDS). Open ports 80 and 443 to the world and 22 to your IP only; never open 4000 or 5432.
+
+```bash
+sudo useradd --system --home /opt/timeline-viewer timeline
+sudo mkdir -p /etc/timeline /var/lib/timeline/uploads && sudo chown -R timeline: /var/lib/timeline
+git clone <repo> /opt/timeline-viewer && cd /opt/timeline-viewer
+npm ci                       # full install: the API runs through tsx and the shared package is TypeScript source
+npm run build                # apps/web/dist (needs ~2 GB of RAM, or build elsewhere and copy dist)
+
+# Internal certificate for the Caddy -> API hop (the public one is Caddy's)
+sudo openssl req -x509 -newkey rsa:2048 -nodes -days 3650 -subj "/CN=localhost" \
+  -keyout /etc/timeline/api-key.pem -out /etc/timeline/api-cert.pem
+sudo chown timeline: /etc/timeline/api-*.pem && sudo chmod 600 /etc/timeline/api-key.pem
+
+cp .env.example apps/api/.env   # then uncomment/edit the "Production" block, new JWT_SECRET, strong DB password
+npm run db:deploy               # prisma migrate deploy (never `db:migrate`, which is for development)
+
+sudo cp deploy/timeline-api.service /etc/systemd/system/ && sudo systemctl enable --now timeline-api
+sudo cp deploy/Caddyfile /etc/caddy/Caddyfile && sudo systemctl reload caddy   # edit the domain first
+```
+
+Why each production setting exists:
+
+- `HOST=127.0.0.1`: the API is only reachable through Caddy, so nobody can talk to port 4000 directly.
+- `TRUST_PROXY=loopback`: without it every request appears to come from Caddy (`127.0.0.1`), so the login rate limiter (50 attempts per 15 minutes) would be shared by all users. It only believes `X-Forwarded-*` from the loopback address; `true` and hop counts are rejected at startup. Plain HTTP is still refused: the proxy must mark the request as HTTPS.
+- `UPLOAD_DIR=/var/lib/timeline/uploads`: images live on local disk, so use a persistent volume and back it up. This does not work on ephemeral compute (Fargate, Lambda) until a `StorageProvider` for S3 exists.
+- Certificate renewal and HSTS are handled by Caddy; the API sends HSTS for its own responses in production.
+
 ## Scripts
 
 | Command                      | What it does                                                       |
@@ -58,6 +90,8 @@ npm run db:migrate
 | `npm run test:e2e`           | Playwright end-to-end tests (starts API and web itself)            |
 | `npm run lint` / `typecheck` | ESLint / TypeScript                                                |
 | `npm run format`             | Prettier                                                           |
+| `npm run db:deploy`          | Apply migrations in production (`prisma migrate deploy`)           |
+| `npm start`                  | Start the API for production (HTTPS, reads `apps/api/.env`)        |
 
 ## How the user stories map to the code
 

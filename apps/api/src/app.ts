@@ -19,8 +19,11 @@ import { LocalStorage } from './storage';
 export function createApp(config: Config, db: Db): Express {
   const app = express();
   app.disable('x-powered-by');
-  // No `trust proxy`: TLS ends in this process, so forwarded headers must not be believed
-  // (they would let clients spoof their IP and bypass the login rate limiter).
+  // TLS always ends in this process, so forwarded headers are NOT believed by default (they
+  // would let clients spoof their IP and bypass the login rate limiter). Behind a reverse
+  // proxy that re-encrypts to this API, TRUST_PROXY names that proxy's address so `req.ip`
+  // is the real client instead of the proxy (otherwise every user shares one rate limit).
+  if (config.TRUST_PROXY) app.set('trust proxy', config.TRUST_PROXY);
 
   // Defense in depth: never answer a request that did not arrive over TLS.
   if (!config.isTest) {

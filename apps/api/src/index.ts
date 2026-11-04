@@ -17,8 +17,8 @@ const server = https
     },
     app,
   )
-  .listen(config.PORT, () => {
-    console.log(`API listening on https://localhost:${config.PORT}`);
+  .listen({ port: config.PORT, host: config.HOST }, () => {
+    console.log(`API listening on https://${config.HOST ?? 'localhost'}:${config.PORT}`);
   });
 
 const shutdown = () => {

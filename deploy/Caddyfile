@@ -1,0 +1,33 @@
+# Replace your.domain. Caddy obtains and renews the Let's Encrypt certificate by itself
+# (ports 80 and 443 must be open and the DNS A record must point to this instance).
+your.domain {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+	}
+
+	# The API only speaks HTTPS, so Caddy re-encrypts to it. The API certificate is the
+	# internal self-signed one and the hop is 127.0.0.1 only, so it is not verified.
+	# Caddy sets X-Forwarded-For/-Proto itself (overwriting what clients send), which is
+	# what TRUST_PROXY=loopback in apps/api/.env relies on.
+	@backend path /api/* /uploads/*
+	handle @backend {
+		reverse_proxy https://127.0.0.1:4000 {
+			transport http {
+				tls_insecure_skip_verify
+			}
+		}
+	}
+
+	# Single-page app: unknown paths (/login, /s/:token, ...) fall back to index.html.
+	handle {
+		root * /opt/timeline-viewer/apps/web/dist
+		@assets path /assets/*
+		header @assets Cache-Control "public, max-age=31536000, immutable"
+		try_files {path} /index.html
+		file_server
+	}
+}

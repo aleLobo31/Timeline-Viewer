@@ -1,0 +1,24 @@
+[Unit]
+Description=Timeline Viewer API (HTTPS, behind Caddy)
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=timeline
+Group=timeline
+WorkingDirectory=/opt/timeline-viewer/apps/api
+# Reads apps/api/.env (NODE_ENV=production, HOST=127.0.0.1, TRUST_PROXY=loopback, ...)
+ExecStart=/usr/bin/npm run start
+Restart=on-failure
+RestartSec=3
+
+# Hardening: the API only needs to write its uploads.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/timeline
+
+[Install]
+WantedBy=multi-user.target

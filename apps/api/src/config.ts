@@ -15,6 +15,21 @@ const envSchema = z
     /** PEM private key and certificate. The API only serves HTTPS (tests run in-process). */
     TLS_KEY_FILE: z.string().min(1).optional(),
     TLS_CERT_FILE: z.string().min(1).optional(),
+    /** Interface to listen on. Behind a reverse proxy on the same machine use 127.0.0.1. */
+    HOST: z.string().min(1).optional(),
+    /**
+     * Address(es) of the reverse proxy whose X-Forwarded-* headers can be believed, e.g.
+     * `loopback`. Unset in development. `true` and hop counts are rejected: they would trust
+     * headers sent by any client and let it spoof its IP (login rate limiter) or protocol.
+     */
+    TRUST_PROXY: z
+      .string()
+      .min(1)
+      .refine(
+        (value) => !/^(true|false|\d+)$/i.test(value.trim()),
+        'TRUST_PROXY must name the proxy address(es), e.g. "loopback" or "10.0.0.0/8"',
+      )
+      .optional(),
   })
   .superRefine((env, ctx) => {
     if (env.NODE_ENV === 'test') return;

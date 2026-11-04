@@ -16,6 +16,8 @@
     "db:up": "docker compose up -d db",
     "db:down": "docker compose down",
     "db:migrate": "npm run db:migrate -w @timeline-viewer/api",
+    "db:deploy": "npm run db:deploy -w @timeline-viewer/api",
+    "start": "npm run start -w @timeline-viewer/api",
     "build": "npm run build -w @timeline-viewer/web",
     "lint": "eslint .",
     "format": "prettier --write .",

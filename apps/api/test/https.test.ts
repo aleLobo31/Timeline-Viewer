@@ -57,4 +57,39 @@ describe('plain HTTP requests', () => {
     expect(res.status).toBe(403);
     expect(res.body.error.code).toBe('HTTPS_REQUIRED');
   });
+
+  it('cannot be disguised with X-Forwarded-Proto when no proxy is trusted', async () => {
+    const config = loadConfig({ ...baseEnv, ...tlsEnv, NODE_ENV: 'development' });
+    const app = createApp(config, createPrisma(baseEnv.DATABASE_URL));
+    const res = await request(app).get('/api/health').set('X-Forwarded-Proto', 'https');
+    expect(res.status).toBe(403);
+  });
+});
+
+describe('behind a reverse proxy (TRUST_PROXY)', () => {
+  const proxyEnv = { ...baseEnv, ...tlsEnv, NODE_ENV: 'production', TRUST_PROXY: 'loopback' };
+
+  it.each(['true', 'false', '1'])('refuses TRUST_PROXY=%s (would trust every client)', (value) => {
+    expect(() => loadConfig({ ...proxyEnv, TRUST_PROXY: value })).toThrow(/TRUST_PROXY must name/);
+  });
+
+  it('keeps TRUST_PROXY and HOST optional', () => {
+    const { TRUST_PROXY: _ignored, ...env } = proxyEnv;
+    const config = loadConfig(env);
+    expect(config.TRUST_PROXY).toBeUndefined();
+    expect(config.HOST).toBeUndefined();
+  });
+
+  it('uses the forwarded client address only from the trusted proxy', () => {
+    const app = createApp(loadConfig(proxyEnv), createPrisma(baseEnv.DATABASE_URL));
+    expect(app.get('trust proxy')).toBe('loopback');
+  });
+
+  it('still refuses plain HTTP that the proxy did not mark as HTTPS', async () => {
+    const app = createApp(loadConfig(proxyEnv), createPrisma(baseEnv.DATABASE_URL));
+    const plain = await request(app).get('/api/health').set('X-Forwarded-Proto', 'http');
+    expect(plain.status).toBe(403);
+    const secure = await request(app).get('/api/health').set('X-Forwarded-Proto', 'https');
+    expect(secure.status).toBe(200);
+  });
 });
