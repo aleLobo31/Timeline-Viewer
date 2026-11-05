@@ -56,9 +56,9 @@ Architecture: **Caddy** (public, ports 80/443, real Let's Encrypt certificate) s
 Install on the instance (Ubuntu 24.04): Node.js 22 LTS, git, Caddy, and PostgreSQL 16 (or use RDS). Open ports 80 and 443 to the world and 22 to your IP only; never open 4000 or 5432.
 
 ```bash
-sudo useradd --system --home /opt/timeline-viewer timeline
+sudo useradd --system --home /var/lib/timeline timeline
 sudo mkdir -p /etc/timeline /var/lib/timeline/uploads && sudo chown -R timeline: /var/lib/timeline
-git clone <repo> /opt/timeline-viewer && cd /opt/timeline-viewer
+sudo git clone <repo> /opt/Timeline-Viewer && cd /opt/Timeline-Viewer
 npm ci                       # full install: the API runs through tsx and the shared package is TypeScript source
 npm run build                # apps/web/dist (needs ~2 GB of RAM, or build elsewhere and copy dist)
 
@@ -67,12 +67,14 @@ sudo openssl req -x509 -newkey rsa:2048 -nodes -days 3650 -subj "/CN=localhost" 
   -keyout /etc/timeline/api-key.pem -out /etc/timeline/api-cert.pem
 sudo chown timeline: /etc/timeline/api-*.pem && sudo chmod 600 /etc/timeline/api-key.pem
 
-cp .env.example apps/api/.env   # then uncomment/edit the "Production" block, new JWT_SECRET, strong DB password
+cp .env.example apps/api/.env   # then uncomment/edit the "Production" block, new JWT_SECRET, strong DB password written literally inside DATABASE_URL (Node does not expand ${VAR})
 npm run db:deploy               # prisma migrate deploy (never `db:migrate`, which is for development)
 
 sudo cp deploy/timeline-api.service /etc/systemd/system/ && sudo systemctl enable --now timeline-api
-sudo cp deploy/Caddyfile /etc/caddy/Caddyfile && sudo systemctl reload caddy   # edit the domain first
+sudo cp deploy/Caddyfile /etc/caddy/Caddyfile && sudo systemctl reload caddy   # domain must already resolve here
 ```
+
+Public name: associate an Elastic IP, point DNS at it (DuckDNS is fine; `*.amazonaws.com` is not — Let's Encrypt refuses it). `WEB_ORIGIN` and the first line of the Caddyfile must be that same `https://` host. Port 80 is required so Caddy can obtain the certificate (HTTP-01) and redirect HTTP to HTTPS.
 
 Why each production setting exists:
 

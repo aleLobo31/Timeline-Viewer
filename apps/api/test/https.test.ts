@@ -36,6 +36,16 @@ describe('HTTPS only configuration', () => {
   it('does not require TLS files in tests (in-process)', () => {
     expect(() => loadConfig({ ...baseEnv, NODE_ENV: 'test' })).not.toThrow();
   });
+
+  it('rejects a DATABASE_URL that still contains ${VAR} (Node does not expand .env files)', () => {
+    expect(() =>
+      loadConfig({
+        ...baseEnv,
+        ...tlsEnv,
+        DATABASE_URL: 'postgresql://timeline:${DATABASE_PWD}@127.0.0.1:5432/timeline',
+      }),
+    ).toThrow(/DATABASE_URL must contain the user, password and host literally/);
+  });
 });
 
 describe('session cookie', () => {

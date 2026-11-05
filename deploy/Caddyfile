@@ -1,6 +1,8 @@
-# Replace your.domain. Caddy obtains and renews the Let's Encrypt certificate by itself
-# (ports 80 and 443 must be open and the DNS A record must point to this instance).
-your.domain {
+# Site name must match DNS (DuckDNS, a purchased domain, ...). Let's Encrypt will
+# NOT issue certificates for *.compute.amazonaws.com (forbidden by policy).
+# Port 80 must be open: Caddy completes the ACME HTTP-01 challenge there and
+# redirects all other HTTP to HTTPS. Port 443 is the public site.
+timeline-viewer.duckdns.org {
 	encode zstd gzip
 
 	header {
@@ -24,7 +26,7 @@ your.domain {
 
 	# Single-page app: unknown paths (/login, /s/:token, ...) fall back to index.html.
 	handle {
-		root * /opt/timeline-viewer/apps/web/dist
+		root * /opt/Timeline-Viewer/apps/web/dist
 		@assets path /assets/*
 		header @assets Cache-Control "public, max-age=31536000, immutable"
 		try_files {path} /index.html

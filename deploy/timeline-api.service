@@ -7,9 +7,12 @@ Wants=network-online.target
 Type=simple
 User=timeline
 Group=timeline
-WorkingDirectory=/opt/timeline-viewer/apps/api
-# Reads apps/api/.env (NODE_ENV=production, HOST=127.0.0.1, TRUST_PROXY=loopback, ...)
-ExecStart=/usr/bin/npm run start
+WorkingDirectory=/opt/Timeline-Viewer/apps/api
+Environment=HOME=/var/lib/timeline
+Environment=NODE_ENV=production
+# tsx is hoisted to the workspace root. Calling it through node avoids npm writing a cache
+# under ProtectSystem=strict. Reads apps/api/.env (HOST=127.0.0.1, TRUST_PROXY=loopback, ...).
+ExecStart=/usr/bin/node /opt/Timeline-Viewer/node_modules/tsx/dist/cli.mjs --env-file-if-exists=.env src/index.ts
 Restart=on-failure
 RestartSec=3
 
